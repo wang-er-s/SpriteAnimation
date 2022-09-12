@@ -1,0 +1,36 @@
+﻿#pragma kernel Sprite 
+
+#include "UnityCG.cginc"
+
+RWStructuredBuffer<int> stencilBuffer;
+RWStructuredBuffer<int> animIndexBuffer;
+RWStructuredBuffer<fixed4> uvBuffer;
+
+CBUFFER_START(Params)
+bool refresh;
+int animLoop;
+half4 sprites[16] = {
+    half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),
+    half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),
+    half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),
+    half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),
+};
+half2 animRange[5] = {
+    half2(0,0), half2(0,0), half2(0,0), half2(0,0), half2(0,0)
+};
+// fixed2 uvs[] = fixed2[](1,2);
+CBUFFER_END
+
+[numthreads(256,1,1)]
+void Sprite(uint id : SV_DispatchThreadID)
+{
+    // if (stencilBuffer[id] == 0)
+    // {
+    //     return;
+    // }
+    if(refresh)
+    {
+        half2 range = animRange[animIndexBuffer[id]];
+        uvBuffer[id] = sprites[range.x + (id + animLoop) % (range.y - range.x + 1)];
+    }
+}

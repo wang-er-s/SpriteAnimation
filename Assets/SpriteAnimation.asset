@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0128468fa62143f98577e3e176ee6d28, type: 3}
+  m_Name: SpriteAnimation
+  m_EditorClassIdentifier: 
+  TargetTexture: {fileID: 2800000, guid: 645f1f6db84e46445b14abc565949017, type: 3}
+  DefaultAnimation: 1
+  Scale: 2
+  UpdateTime: 0.4
+  XYCount: {x: 4, y: 1}
+  Clips:
+  - Name: attack
+    StartUvIndex: 0
+    EndUvIndex: 1
+  - Name: attack2
+    StartUvIndex: 2
+    EndUvIndex: 3

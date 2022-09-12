@@ -58,3 +58,7 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+/Assets/Plugins/Sirenix
+/Assets/Plugins/Sirenix.meta
+/.idea
+/UserSettings
