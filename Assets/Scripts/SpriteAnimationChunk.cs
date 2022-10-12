@@ -69,7 +69,7 @@
             this.count = count;
             this.spriteAnimation = spriteAnimation;
             mesh = CreateQuad();
-            kernel = computeShader.FindKernel("Sprite");
+            kernel = this.computeShader.FindKernel("Sprite");
             groupX = count / XThreadCount + 1;
             SetBuffer();
         }
@@ -82,24 +82,24 @@
         public void Update()
         {
             animLoopTimer += Time.deltaTime;
-            if (animLoopTimer >= spriteAnimation.UpdateTime)
-            {
-                animLoopTimer = 0;
-                animLoopIndex++;
-                computeShader.SetBool(refreshComputeShaderName, true);
-                computeShader.SetInt(animLoopComputeShaderName, animLoopIndex);
-                computeShader.Dispatch(kernel, groupX, 1, 1);
-                hasRefresh = true;
-            }
-            else if (hasRefresh)
-            {
-                hasRefresh = false;
-                computeShader.SetBool(refreshComputeShaderName, false);
-                computeShader.Dispatch(kernel, groupX, 1, 1);
-            }
+             if (animLoopTimer >= spriteAnimation.UpdateTime)
+             {
+                 animLoopTimer = 0;
+                 animLoopIndex++;
+                 computeShader.SetBool(refreshComputeShaderName, true);
+                 computeShader.SetInt(animLoopComputeShaderName, animLoopIndex);
+                 computeShader.Dispatch(kernel, groupX, 1, 1);
+                 hasRefresh = true;
+             }
+             else if (hasRefresh)
+             {
+                 hasRefresh = false;
+                 computeShader.SetBool(refreshComputeShaderName, false);
+                 computeShader.Dispatch(kernel, groupX, 1, 1);
+             }
 
             Graphics.DrawMeshInstancedIndirect(this.mesh, 0, this.mat, BOUNDS, this.argsBuffer,
-                castShadows: ShadowCastingMode.Off, receiveShadows: false);
+               castShadows: ShadowCastingMode.Off, receiveShadows: false);
         }
 
         private void SetBuffer()

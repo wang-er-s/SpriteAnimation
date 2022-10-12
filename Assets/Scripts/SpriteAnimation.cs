@@ -11,7 +11,7 @@
         [LabelText("默认动画索引")]
         public int DefaultAnimation;
         [LabelText("缩放")]
-        public int Scale = 1;
+        public float Scale = 1;
         [LabelText("每帧的播放时间")]
         [Range(0,1)]
         public float UpdateTime = 0.1f;

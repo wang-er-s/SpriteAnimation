@@ -46,7 +46,7 @@ namespace Framework.Helper
             //Application.targetFrameRate=60;
 
             lastInterval = Time.realtimeSinceStartup;
-
+            Application.targetFrameRate = 360;
             frames = 0;
             stringBuilder = new StringBuilder();
         }

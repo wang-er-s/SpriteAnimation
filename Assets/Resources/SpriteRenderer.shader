@@ -20,7 +20,16 @@ Shader "Instanced/ComputeBufferSprite" {
  
             #pragma vertex vert
             #pragma fragment frag
-            #pragma target 4.5
+            #pragma multi_compile_instancing
+            #pragma target 3.5
+
+            #if SHADER_TARGET >= 35 && (defined(SHADER_API_D3D11) || defined(SHADER_API_GLES3) || defined(SHADER_API_GLCORE) || defined(SHADER_API_XBOXONE) || defined(SHADER_API_PSSL) || defined(SHADER_API_SWITCH) || defined(SHADER_API_VULKAN) || (defined(SHADER_API_METAL) && defined(UNITY_COMPILER_HLSLCC)))
+              #define SUPPORT_STRUCTUREDBUFFER
+            #endif
+ 
+			#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) && defined(SUPPORT_STRUCTUREDBUFFER)
+               #define ENABLE_INSTANCING
+            #endif
  
             #include "UnityCG.cginc"
  
@@ -32,7 +41,7 @@ Shader "Instanced/ComputeBufferSprite" {
             StructuredBuffer<float> stencilBuffer;
  
             // xy is the uv size, zw is the uv offset/coordinate
-            StructuredBuffer<fixed4> uvBuffer; 
+           StructuredBuffer<fixed4> uvBuffer;
  
             struct v2f{
                 float4 pos : SV_POSITION;
@@ -54,7 +63,6 @@ Shader "Instanced/ComputeBufferSprite" {
             v2f vert (appdata_full v, uint instanceID : SV_InstanceID) {
                 float3 transform = transformBuffer[instanceID];
                 fixed4 uv = uvBuffer[instanceID];
-                 
                 //rotate the vertex
                 v.vertex = mul(v.vertex - float4(0.5, 0.5, 0,0), rotationZMatrix(transform.z));
                  

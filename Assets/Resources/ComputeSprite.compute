@@ -2,18 +2,18 @@
 
 #include "UnityCG.cginc"
 
-RWStructuredBuffer<int> stencilBuffer;
+// RWStructuredBuffer<int> stencilBuffer;
 RWStructuredBuffer<int> animIndexBuffer;
-RWStructuredBuffer<fixed4> uvBuffer;
+RWStructuredBuffer<float4> uvBuffer;
 
 CBUFFER_START(Params)
 bool refresh;
 int animLoop;
-half4 sprites[16] = {
-    half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),
-    half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),
-    half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),
-    half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),half4(0,0,0,0),
+fixed4 sprites[16] = {
+    fixed4(0,0,0,0),fixed4(0,0,0,0),fixed4(0,0,0,0),fixed4(0,0,0,0),
+    fixed4(0,0,0,0),fixed4(0,0,0,0),fixed4(0,0,0,0),fixed4(0,0,0,0),
+    fixed4(0,0,0,0),fixed4(0,0,0,0),fixed4(0,0,0,0),fixed4(0,0,0,0),
+    fixed4(0,0,0,0),fixed4(0,0,0,0),fixed4(0,0,0,0),fixed4(0,0,0,0),
 };
 half2 animRange[5] = {
     half2(0,0), half2(0,0), half2(0,0), half2(0,0), half2(0,0)

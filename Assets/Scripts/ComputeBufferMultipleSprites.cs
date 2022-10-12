@@ -23,10 +23,20 @@ public class ComputeBufferMultipleSprites : MonoBehaviour {
     private void Start()
     {
         chunks = new List<SpriteAnimationChunk>();
-        for (int i = 0; i < count / 100; i++)
+        int tmpCount = count;
+        while (tmpCount > 0)
         {
-            chunks.Add(new SpriteAnimationChunk(material, computeShader, 100, spriteAnimation));
-        } 
+            if (tmpCount >= 100)
+            {
+                chunks.Add(new SpriteAnimationChunk(material, computeShader, 100, spriteAnimation));
+            }
+            else
+            {
+                chunks.Add(new SpriteAnimationChunk(material, computeShader, tmpCount, spriteAnimation));
+            }
+
+            tmpCount -= 100;
+        }
     }
 
     private void Update()
