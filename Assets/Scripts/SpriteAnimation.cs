@@ -3,7 +3,7 @@
     using Sirenix.OdinInspector;
     using UnityEngine;
 
-    [CreateAssetMenu(fileName = "SpriteAnimation",menuName = "贴图动画")]
+    [CreateAssetMenu(fileName = "SpriteAnimation",menuName = "SpriteAnimation")]
     public class SpriteAnimation : ScriptableObject
     {
         [LabelText("贴图")]
