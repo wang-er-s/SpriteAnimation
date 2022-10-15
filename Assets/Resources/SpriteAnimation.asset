@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpriteAnimation
   m_EditorClassIdentifier: 
   TargetTexture: {fileID: 2800000, guid: 645f1f6db84e46445b14abc565949017, type: 3}
-  PerChunkRenderCount: 100
+  PerChunkRenderCount: 10000
   DefaultAnimation: 0
   Scale: 0.2
   UpdateTime: 0.3

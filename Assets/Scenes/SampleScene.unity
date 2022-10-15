@@ -651,5 +651,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 28e24d9530384319a89c9cbfa8c0f54a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  count: 10000
+  count: 100000
   spriteAnimation: {fileID: 11400000, guid: f7d44e0d406c0b948a46c3f73939565e, type: 2}
