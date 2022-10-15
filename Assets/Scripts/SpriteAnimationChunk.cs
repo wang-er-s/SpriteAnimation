@@ -10,7 +10,10 @@
 
         private Material mat;
         private ComputeShader computeShader;
-        private int count;
+        private int CurrentCount { get; set; }
+        private int MaxCount => spriteAnimation.PerChunkRenderCount;
+        public int LeftCapacity => MaxCount - CurrentCount;
+        public bool Full => CurrentCount >= MaxCount;
         private SpriteAnimation spriteAnimation;
 
         #region buffer
@@ -25,6 +28,7 @@
         private ComputeBuffer uvBuffer;
         private ComputeBuffer scaleBuffer;
         private ComputeBuffer animIndexBuffer;
+        private ComputeBuffer stencilBuffer;
         private uint[] args;
         private ComputeBuffer argsBuffer;
 
@@ -43,12 +47,15 @@
         // xy is pos, z is rotation
         private float3[] transformsData;
         private int[] animIndexData;
+        // 0不存在 1存在
+        private int[] stencilData;
 
         #endregion
 
         #region buffer名字
 
         private const string transformBufferPropertyName = "transformBuffer";
+        private const string stencilBufferPropertyName = "stencilBuffer";
         private const string scaleBufferPropertyName = "scaleBuffer";
         private const string uvBufferPropertyName = "uvBuffer";
         private const string animIndexBufferPropertyName = "animIndexBuffer";
@@ -60,20 +67,22 @@
 
         #endregion
 
-        public SpriteAnimationChunk(Material mat, ComputeShader computeShader, int count,
-            SpriteAnimation spriteAnimation)
+        // 记录索引
+        public int Order { get; }
+
+        public SpriteAnimationChunk(Material mat, ComputeShader computeShader, SpriteAnimation spriteAnimation, int basicOrder)
         {
+            Order = basicOrder;
             this.mat = new Material(mat);
             mat.mainTexture = spriteAnimation.TargetTexture;
             this.computeShader = Object.Instantiate(computeShader);
-            this.count = count;
             this.spriteAnimation = spriteAnimation;
             mesh = CreateQuad();
             kernel = this.computeShader.FindKernel("Sprite");
-            groupX = count / XThreadCount + 1;
-            SetBuffer();
+            groupX = MaxCount / XThreadCount + 1;
+            Init();
         }
-
+        
         private static readonly Bounds BOUNDS = new Bounds(Vector2.zero, Vector3.one);
         private float animLoopTimer;
         private int animLoopIndex;
@@ -82,69 +91,98 @@
         public void Update()
         {
             animLoopTimer += Time.deltaTime;
-             if (animLoopTimer >= spriteAnimation.UpdateTime)
-             {
-                 animLoopTimer = 0;
-                 animLoopIndex++;
-                 computeShader.SetBool(refreshComputeShaderName, true);
-                 computeShader.SetInt(animLoopComputeShaderName, animLoopIndex);
-                 computeShader.Dispatch(kernel, groupX, 1, 1);
-                 hasRefresh = true;
-             }
-             else if (hasRefresh)
-             {
-                 hasRefresh = false;
-                 computeShader.SetBool(refreshComputeShaderName, false);
-                 computeShader.Dispatch(kernel, groupX, 1, 1);
-             }
+            if (animLoopTimer >= spriteAnimation.UpdateTime)
+            {
+                animLoopTimer = 0;
+                animLoopIndex++;
+                computeShader.SetBool(refreshComputeShaderName, true);
+                computeShader.SetInt(animLoopComputeShaderName, animLoopIndex);
+                computeShader.Dispatch(kernel, groupX, 1, 1);
+                hasRefresh = true;
+            }
+            else if (hasRefresh)
+            {
+                hasRefresh = false;
+                computeShader.SetBool(refreshComputeShaderName, false);
+                computeShader.Dispatch(kernel, groupX, 1, 1);
+            }
 
             Graphics.DrawMeshInstancedIndirect(this.mesh, 0, this.mat, BOUNDS, this.argsBuffer,
-               castShadows: ShadowCastingMode.Off, receiveShadows: false);
+                castShadows: ShadowCastingMode.Off, receiveShadows: false);
         }
 
-        private void SetBuffer()
+        /// <summary>
+        /// add new animation
+        /// </summary>
+        /// <returns>sprite order id, use for change animation</returns>
+        /// <exception cref="Exception">data length greater than capacity</exception>
+        public PoolList<int> SetData(PoolList<float2> pos, PoolList<float> rotate)
+        {
+            if (pos.Count != rotate.Count || pos.Count > LeftCapacity)
+            {
+                throw new Exception("beyond expect count!");
+            }
+
+            PoolList<int> result = PoolList<int>.Create(pos.Count);
+            CurrentCount += pos.Count;
+
+            int index = 0;
+            for (int i = 0; i < stencilData.Length; i++)
+            {
+                if (stencilData[i] == 0)
+                {
+                    transformsData[i] = new float3(pos[index], rotate[index]);
+                    stencilData[i] = 1;
+                    result.Add(Order + i);
+                    index++;
+                }
+
+                if(index >= pos.Count) break;
+            }
+
+            this.transformBuffer.SetData(transformsData);
+            this.mat.SetBuffer(transformBufferPropertyName, this.transformBuffer);
+            
+            stencilBuffer.SetData(stencilData);
+            mat.SetBuffer(stencilBufferPropertyName, stencilBuffer);
+            computeShader.SetBuffer(kernel, stencilBufferPropertyName, stencilBuffer);
+
+            return result;
+        }
+
+        private void Init()
         {
             // Prepare values
-            transformsData = new float3[this.count];
-            animIndexData = new int[count];
-            float4[] uvs = new float4[this.count];
-            float[] scales = new float[this.count];
+            transformsData = new float3[MaxCount];
+            animIndexData = new int[MaxCount];
+            var uvs = new float4[MaxCount];
+            var scales = new float[MaxCount];
+            stencilData = new int[MaxCount];
 
-            const float maxRotation = Mathf.PI * 2;
-            for (int i = 0; i < this.count; ++i)
+            transformBuffer = new ComputeBuffer(MaxCount, 4 * 3);
+            scaleBuffer = new ComputeBuffer(MaxCount, 4);
+            stencilBuffer = new ComputeBuffer(MaxCount, 4);
+            uvBuffer = new ComputeBuffer(MaxCount, 4 * 4);
+            animIndexBuffer = new ComputeBuffer(MaxCount, 4);
+            
+            for (int i = 0; i < MaxCount; ++i)
             {
-                // transform
-                float x = UnityEngine.Random.Range(-10f, 10f);
-                float y = UnityEngine.Random.Range(-5f, 5.0f);
-                float rotation = UnityEngine.Random.Range(0, maxRotation);
-                transformsData[i] = new float3(x, y, rotation);
-
-                // UV
+                animIndexData[i] = spriteAnimation.DefaultAnimation;
+                scales[i] = spriteAnimation.Scale;// UV
                 float u = UnityEngine.Random.Range(0, 4) * 0.25f;
                 float v = UnityEngine.Random.Range(0, 4) * 0.25f;
                 uvs[i] = new float4(0.25f, 0.25f, u, v);
-
-                scales[i] = spriteAnimation.Scale;
-
-                animIndexData[i] = spriteAnimation.DefaultAnimation;
             }
-
-            this.transformBuffer = new ComputeBuffer(this.count, 4 * 3);
-            this.transformBuffer.SetData(transformsData);
-            this.mat.SetBuffer(transformBufferPropertyName, this.transformBuffer);
-
-            this.scaleBuffer = new ComputeBuffer(this.count, 4);
-            this.scaleBuffer.SetData(scales);
-            mat.SetBuffer(scaleBufferPropertyName, scaleBuffer);
-
-            this.uvBuffer = new ComputeBuffer(this.count, 4 * 4);
+            
+            animIndexBuffer.SetData(animIndexData);
+            computeShader.SetBuffer(kernel, animIndexBufferPropertyName, animIndexBuffer);
+            
             this.uvBuffer.SetData(uvs);
             this.mat.SetBuffer(uvBufferPropertyName, this.uvBuffer);
             computeShader.SetBuffer(kernel, uvBufferPropertyName, uvBuffer);
-
-            animIndexBuffer = new ComputeBuffer(count, 4);
-            animIndexBuffer.SetData(animIndexData);
-            computeShader.SetBuffer(kernel, animIndexBufferPropertyName, animIndexBuffer);
+            
+            this.scaleBuffer.SetData(scales);
+            mat.SetBuffer(scaleBufferPropertyName, scaleBuffer);
 
 
             var spriteCount = spriteAnimation.XYCount.x * spriteAnimation.XYCount.y;
@@ -176,15 +214,14 @@
 
             this.args = new uint[]
             {
-                6, (uint)this.count, 0, 0, 0
+                6, (uint)this.MaxCount, 0, 0, 0
             };
             this.argsBuffer =
                 new ComputeBuffer(1, this.args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
             this.argsBuffer.SetData(this.args);
-
         }
         
-        private void SetAnim(IEnumerable<int> allIndex,string animName)
+        public void SetAnim(PoolList<int> allIndex,string animName)
         {
             int animIndex = -1;
             foreach (var animation in spriteAnimation.Clips)
@@ -204,7 +241,7 @@
 
             foreach (var index in allIndex)
             {
-                animIndexData[index] = animIndex;
+                animIndexData[index - Order] = animIndex;
             }
         
             animIndexBuffer.SetData(animIndexData);
@@ -253,6 +290,7 @@
             uvBuffer?.Dispose();
             scaleBuffer?.Dispose();
             animIndexBuffer?.Dispose();
+            stencilBuffer?.Dispose();
             argsBuffer?.Dispose();
         }
     }

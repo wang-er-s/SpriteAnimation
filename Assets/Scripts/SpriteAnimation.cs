@@ -8,6 +8,8 @@
     {
         [LabelText("贴图")]
         public Texture TargetTexture;
+        [LabelText("每个块渲染的数量")]
+        public int PerChunkRenderCount = 100;
         [LabelText("默认动画索引")]
         public int DefaultAnimation;
         [LabelText("缩放")]

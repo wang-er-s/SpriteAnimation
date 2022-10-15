@@ -2,7 +2,7 @@
 
 #include "UnityCG.cginc"
 
-// RWStructuredBuffer<int> stencilBuffer;
+RWStructuredBuffer<int> stencilBuffer;
 RWStructuredBuffer<int> animIndexBuffer;
 RWStructuredBuffer<float4> uvBuffer;
 
@@ -24,10 +24,10 @@ CBUFFER_END
 [numthreads(256,1,1)]
 void Sprite(uint id : SV_DispatchThreadID)
 {
-    // if (stencilBuffer[id] == 0)
-    // {
-    //     return;
-    // }
+    if (stencilBuffer[id] == 0)
+    {
+        return;
+    }
     if(refresh)
     {
         half2 range = animRange[animIndexBuffer[id]];

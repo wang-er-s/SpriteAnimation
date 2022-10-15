@@ -15,9 +15,6 @@ Shader "Instanced/ComputeBufferSprite" {
         Blend One OneMinusSrcAlpha
         Pass {
             CGPROGRAM
-            // Upgrade NOTE: excluded shader from OpenGL ES 2.0 because it uses non-square matrices
-            #pragma exclude_renderers gles
- 
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile_instancing
@@ -38,7 +35,7 @@ Shader "Instanced/ComputeBufferSprite" {
             // xy for position, z for rotation
             StructuredBuffer<float3> transformBuffer;
             StructuredBuffer<float> scaleBuffer;
-            StructuredBuffer<float> stencilBuffer;
+            StructuredBuffer<bool> stencilBuffer;
  
             // xy is the uv size, zw is the uv offset/coordinate
            StructuredBuffer<fixed4> uvBuffer;
@@ -46,6 +43,7 @@ Shader "Instanced/ComputeBufferSprite" {
             struct v2f{
                 float4 pos : SV_POSITION;
                 float2 uv: TEXCOORD0;
+                uint clip : UINT;
             };
  
             float4x4 rotationZMatrix(float zRotRadians) {
@@ -61,6 +59,12 @@ Shader "Instanced/ComputeBufferSprite" {
             }
  
             v2f vert (appdata_full v, uint instanceID : SV_InstanceID) {
+                v2f o;
+                if(stencilBuffer[instanceID] == 0)
+                {
+                    o.clip = 0;
+                    return o;
+                }
                 float3 transform = transformBuffer[instanceID];
                 fixed4 uv = uvBuffer[instanceID];
                 //rotate the vertex
@@ -69,7 +73,6 @@ Shader "Instanced/ComputeBufferSprite" {
                 //scale it
                 float3 worldPosition = float3(transform.x, transform.y, 0) + (v.vertex.xyz * scaleBuffer[instanceID]);
                  
-                v2f o;
                 o.pos = UnityObjectToClipPos(float4(worldPosition, 1.0f));
                  
                 // XY here is the dimension (width, height). 
@@ -79,10 +82,11 @@ Shader "Instanced/ComputeBufferSprite" {
             }
  
             fixed4 frag (v2f i) : SV_Target{
+                if(i.clip == 0)
+                    clip(true);
                 fixed4 col = tex2D(_MainTex, i.uv);
-                clip(col.a - 1.0 / 255.0);
+                clip(col.a - 0.01);
                 col.rgb *= col.a;
- 
                 return col;
             }
  
